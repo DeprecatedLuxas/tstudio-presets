@@ -4,9 +4,6 @@ import sys, getopt, os
 import zipfile
 import json
 import shutil
-import time
-
-
 
 def main(argv):
     try:
@@ -101,36 +98,6 @@ def readpackage():
 def copyicon(newname, icon):
     path = os.path.join("./extracted/extension", os.path.normpath(icon))
     shutil.copy(path, './preset-icons/' + newname + ".png")
-
-def extracttheme(version, description, icon, theme):
-    name = theme["label"]
-    type = theme["uiTheme"]
-    pathh = os.path.join("./extracted/extension", os.path.normpath(theme["path"]))
-
-    with open(pathh) as f:
-        theme_file = json.load(f)
-        preset = {
-            "name": name,
-            "type": type,
-            "description": description,
-            "version": version,
-            "icon": "./preset-icons/" + icon,
-        }
-        if "colors" in theme_file:
-            preset["colors"] = theme_file["colors"]
-        if "semanticHighlighting" in theme_file:
-            preset["semanticHighlighting"] = theme_file["semanticHighlighting"]
-        if "tokenColors" in theme_file:
-            if isinstance(theme_file["tokenColors"], list):
-                preset["tokenColors"] = theme_file["tokenColors"]
-            else:
-                print("Error: tokenColors is not a list in theme " + name)
-
-        if "semanticTokenColors" in theme_file:
-            preset["semanticTokenColors"] = theme_file["semanticTokenColors"]
-        with open("./presets/" + formatname(name) + ".tstudio-preset", "w") as f:
-            f.writelines(json.dumps(preset, indent=2))
-
 def formatname(name):
     return name.replace(" ", "-").replace("(", "").replace(")", "").lower()
 
