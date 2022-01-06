@@ -4,6 +4,8 @@ import sys, getopt, os
 import zipfile
 import json
 import shutil
+import time
+
 
 
 def main(argv):
@@ -44,27 +46,94 @@ def readpackage():
     with open("./extracted/extension/package.json") as f:
         packagejson = json.load(f)
 
+        version = "Not defined"
+        icon = "unknown-preset.png"
+        description = "Not defined"
+        if "description" in packagejson:
+            description = packagejson["description"]
+        if "version" in packagejson:
+            version = packagejson["version"]
+        
+        if "icon" in packagejson:
+            newname = packagejson["name"] + "-" + version
+        
+            copyicon(newname, packagejson["icon"])
+            icon = newname + ".png"
         if "contributes" in packagejson:
             if "themes" in packagejson["contributes"]:
                 for theme in packagejson["contributes"]["themes"]:
-                    print(theme["uiTheme"], theme["path"])
-                    extracttheme(theme)
+
+                    name = theme["label"]
+                    type = theme["uiTheme"]
+                    print("Extracting theme", theme["label"])
+
+                    pathh = os.path.join("./extracted/extension", os.path.normpath(theme["path"]))
+
+                    with open(pathh) as f:
+                        theme_file = json.load(f)
+                        preset = {
+                            "name": name,
+                            "type": type,
+                            "description": description,
+                            "version": version,
+                            "icon": "./preset-icons/" + icon,
+                        }
+                        if "colors" in theme_file:
+                            preset["colors"] = theme_file["colors"]
+                        if "semanticHighlighting" in theme_file:
+                            preset["semanticHighlighting"] = theme_file["semanticHighlighting"]
+                        if "tokenColors" in theme_file:
+                            if isinstance(theme_file["tokenColors"], list):
+                                preset["tokenColors"] = theme_file["tokenColors"]
+                            else:
+                                print("Error: tokenColors is not a list in theme " + name)
+                                continue
+
+                        if "semanticTokenColors" in theme_file:
+                            preset["semanticTokenColors"] = theme_file["semanticTokenColors"]
+                        with open("./presets/" + formatname(name) + ".tstudio-preset", "w") as f:
+                            f.writelines(json.dumps(preset, indent=2))
+       
         else:
             print("Error: package.json is missing contributes")
             sys.exit(2)
 
+def copyicon(newname, icon):
+    path = os.path.join("./extracted/extension", os.path.normpath(icon))
+    shutil.copy(path, './preset-icons/' + newname + ".png")
 
-def extracttheme(theme):
-    print("Extracting theme", theme["label"])
-  
+def extracttheme(version, description, icon, theme):
+    name = theme["label"]
+    type = theme["uiTheme"]
     pathh = os.path.join("./extracted/extension", os.path.normpath(theme["path"]))
-    
+
     with open(pathh) as f:
         theme_file = json.load(f)
-        print(theme_file)
-    # with zipfile.ZipFile('./extracted/extension/' + theme['path']) as z:
-    #   z.extractall('./extracted/extension/' + theme['path'])
+        preset = {
+            "name": name,
+            "type": type,
+            "description": description,
+            "version": version,
+            "icon": "./preset-icons/" + icon,
+        }
+        if "colors" in theme_file:
+            preset["colors"] = theme_file["colors"]
+        if "semanticHighlighting" in theme_file:
+            preset["semanticHighlighting"] = theme_file["semanticHighlighting"]
+        if "tokenColors" in theme_file:
+            if isinstance(theme_file["tokenColors"], list):
+                preset["tokenColors"] = theme_file["tokenColors"]
+            else:
+                print("Error: tokenColors is not a list in theme " + name)
 
+        if "semanticTokenColors" in theme_file:
+            preset["semanticTokenColors"] = theme_file["semanticTokenColors"]
+        with open("./presets/" + formatname(name) + ".tstudio-preset", "w") as f:
+            f.writelines(json.dumps(preset, indent=2))
+
+def formatname(name):
+    return name.replace(" ", "-").replace("(", "").replace(")", "").lower()
 
 if __name__ == "__main__":
+
     main(sys.argv[1:])
